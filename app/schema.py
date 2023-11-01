@@ -58,13 +58,13 @@ class Post(BaseModel):
     updated_at: datetime = datetime.utcnow()
 
 class Message(BaseModel):
-    sender_id: str
-    receiver_id: str
-    text: str
+    sender: str
+    receiver: str
+    content: str
     created_at: datetime = datetime.utcnow()
 
 class Notification(BaseModel):
-    user_id: str 
+    user: User 
     message: str
     created_at: datetime = datetime.utcnow()
     is_read: bool = False

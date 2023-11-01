@@ -23,7 +23,7 @@ async def add_status(media_file: UploadFile, caption:str='', current_user: dict 
 
         user = await userTable.find_one({'_id': ObjectId(user_id)})
         if not user:
-            return response(status.HTTP_404_NOT_FOUND, "No such user!")
+            return response(status_code=404, message="No such user!")
         
         content = await media_upload(media_file)
         created_at = datetime.utcnow()
@@ -43,9 +43,9 @@ async def add_status(media_file: UploadFile, caption:str='', current_user: dict 
         new_status_id_ref = await statusTable.insert_one(status_instance.dict())
         new_status = await statusTable.find_one({'_id': new_status_id_ref.inserted_id})
 
-        return response(status.HTTP_201_CREATED, "Status has been added!", status_serializer(new_status))
+        return response(status_code=201, message="Status has been added!", data=status_serializer(new_status))
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
     
 
 @router.delete('/status/{status_id}', response_description="Remove status")
@@ -53,19 +53,19 @@ async def remove_status(status_id: str, current_user: dict = Depends(oauth2.get_
     try:
         status_obj = await statusTable.find_one({"_id": ObjectId(status_id)})
         if not status_obj:
-            return response(status.HTTP_404_NOT_FOUND, "Status not found!")
+            return response(status_code=404, message="Status not found!")
         
         if status_obj['user_id'] != current_user['user_id']:
-            return response(status.HTTP_422_UNPROCESSABLE_ENTITY, "This status does not belong to this user!")
+            return response(status_code=442, message="This status does not belong to this user!")
         
         deleted_media = await media_deletion(status_obj['content']['public_id'])
         if deleted_media: 
             await statusTable.delete_one({"_id": ObjectId(status_id)})
-            return response(status.HTTP_200_OK, "Status has been deleted")
+            return response(status_code=200, message="Status has been deleted")
         else:
-            return response(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to delete media")
+            return response(status_code=500, message="Failed to delete media")
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
 
 
 @router.get('/status/{user_id}', response_description="Get all statuses for a user")
@@ -80,7 +80,7 @@ async def get_all_statuses(
         total_status_count = await statusTable.count_documents(query)
 
         if total_status_count == 0:
-            return response(status.HTTP_404_NOT_FOUND, "Status not found!")
+            return response(status_code=404, message="Status not found!")
         
         status_list = await statusTable.find({'user_id':user_id, 'is_expired': False}).skip((page - 1) * limit).limit(limit).to_list(limit)
 
@@ -91,6 +91,6 @@ async def get_all_statuses(
             "total_status": total_status_count
         }
         
-        return response(status.HTTP_200_OK, "All status fetched for this user", res)
+        return response(status_code=200, message="All status fetched for this user", data=res)
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))

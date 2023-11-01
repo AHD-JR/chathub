@@ -7,3 +7,4 @@ python-jose
 motor
 cloudinary
 python-multipart
+websockets

@@ -49,8 +49,8 @@ async def media_deletion(public_id: str):
         res = await asyncio.to_thread(api.delete_resources, [public_id])
 
         if res["deleted"][public_id] == "deleted":
-            return response(status.HTTP_200_OK, "Profile photo is removed!")
+            return response(status_code=200, message="Profile photo is removed!")
         else:
-            return response(status.HTTP_400_BAD_REQUEST, f"Failed to delete image {public_id}.")
+            return response(status_code=400, message=f"Failed to delete image {public_id}.")
     except Exception as e:
-        return response(status.HTTP_400_BAD_REQUEST, str(e))
+        return response(status_code=400, message=str(e))

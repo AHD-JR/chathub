@@ -16,10 +16,10 @@ async def login(req: OAuth2PasswordRequestForm = Depends()):
     try:
         user = await userTable.find_one({'username': req.username})
         if not user:
-            return response(status.HTTP_404_NOT_FOUND, 'Account not found!')
+            return response(status_code=404, message='Account not found!')
 
         if not verify(req.password, user['password']):
-            return response(status.HTTP_401_UNAUTHORIZED, 'Incorrect password!')
+            return response(status_code=400, message='Incorrect password!')
         
         access_token = jwt.create_access_token(data={'user_data': user_serializer(user)})
         
@@ -33,6 +33,6 @@ async def login(req: OAuth2PasswordRequestForm = Depends()):
         # ...the OAuthPasswordBearer extract and pass on subsequent request headers
         return data
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
 
 

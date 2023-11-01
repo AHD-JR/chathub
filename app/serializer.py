@@ -39,3 +39,11 @@ def comment_serializer(comment):
         "text": comment['text'],
         "created_at": str(comment['created_at'])
     }
+
+def notification_serializer(notification):
+    return {
+        "user": notification['user'],
+        "message": notification['message'],
+        "created_at": notification['created_at'],
+        "is_read": notification['is_read']
+    }

@@ -21,7 +21,7 @@ async def create_account(req: UserProfile):
     try:
         user = await userTable.find_one({'username': req.username})
         if user:
-            return response(status.HTTP_226_IM_USED, 'Username has been taken!')
+            return response(status_code=226, message='Username has been taken!')
      
         user_object = req.dict()
         user_object['password'] = hash(user_object['password'])
@@ -29,9 +29,9 @@ async def create_account(req: UserProfile):
         user_id_ref = await userTable.insert_one(user_object)
         new_user = await userTable.find_one({'_id': user_id_ref.inserted_id})
         
-        return response(status.HTTP_201_CREATED, 'User account has been created', user_serializer(new_user))
+        return response(status_code=201, message='User account has been created', data=user_serializer(new_user))
     except Exception as e:
-        return response(status.HTTP_400_BAD_REQUEST, str(e))
+        return response(status_code=400, message=str(e))
     
 
 @router.get('/users', response_description="Get all users, senior approach")
@@ -44,7 +44,7 @@ async def get_all_users(
         users = await userTable.find({}).skip((page - 1) * limit).limit(limit).to_list(limit)
 
         if not users:
-            return response(status.HTTP_404_NOT_FOUND, "No users found!")
+            return response(status_code=404, message="No users found!")
         
         total_count = await userTable.count_documents({})
 
@@ -55,18 +55,18 @@ async def get_all_users(
             "total": total_count
         }
 
-        return response(status.HTTP_200_OK, "Users fetched successfully.", res)
+        return response(status_code=200, message="Users fetched successfully.", data=res)
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
 
 
 @router.get('/users/{user_id}', response_description="Get user", response_model=UserProfile)
 async def get_user(user_id: str, current_user: UserProfile = Depends(oauth2.get_current_user)):
     user = await userTable.find_one({'_id': ObjectId(user_id)})
     if not user:
-       return response(status.HTTP_404_NOT_FOUND, 'No such user!')
+       return response(status_code=404, message='No such user!')
     
-    return response(status.HTTP_200_OK, "User info fetched!", user_serializer(user))
+    return response(status_code=200, message="User info fetched!", data=user_serializer(user))
 
 
 @router.put('/edit_profile/{user_id}')
@@ -77,13 +77,13 @@ async def update_profile(user_id: str, req: UserProfile, current_user: UserProfi
             updated_result = await userTable.update_one({'_id': ObjectId(user_id)}, {'$set': req.dict()})
             if updated_result.modified_count != 0:
                 updated_user = await userTable.find_one({'_id': ObjectId(user_id)})
-                return response(status.HTTP_200_OK, "Profile Updated!", user_serializer(updated_user))
+                return response(status_code=200, message="Profile Updated!", data=user_serializer(updated_user))
             else:
-                return response(status.HTTP_400_BAD_REQUEST, "Not updated, Unable to update profile")
+                return response(status_code=400, message="Not updated, Unable to update profile")
         else:
-            return response(status.HTTP_404_NOT_FOUND, "User not found!")
+            return response(status_code=404, message="User not found!")
     except Exception as e:
-        return response(status.HTTP_400_BAD_REQUEST, str(e))
+        return response(status_code=400, message=str(e))
     
     
 @router.delete('/user/{user_id}')
@@ -91,13 +91,13 @@ async def delete_user(user_id, current_user: UserProfile = Depends(oauth2.get_cu
     try:
         user = await userTable.find_one({'_id': ObjectId(user_id)})
         if not user:
-            return response(status.HTTP_404_NOT_FOUND, "USer not found!")
+            return response(status_code=404, message="USer not found!")
         
         await userTable.delete_one({"_id": ObjectId(user_id)})
 
-        return response(status.HTTP_200_OK, "User deleted", user_serializer(user))
+        return response(status_code=200, message="User deleted", data=user_serializer(user))
     except Exception as e:
-        return response(status.HTTP_400_BAD_REQUEST, str(e))
+        return response(status_code=400, message=str(e))
 
 
 @router.post('/profile_photo')
@@ -115,18 +115,18 @@ async def follow_user(user_id: str, current_user: dict = Depends(oauth2.get_curr
     try:
         target_user = await userTable.find_one({'_id': ObjectId(user_id)})
         if not target_user:
-            return response(status.HTTP_404_NOT_FOUND, "User does not exist!")
+            return response(status_code=404, message="User does not exist!")
         
         target_user = user_serializer(target_user)
 
         if target_user['id'] == current_user['id']:
-            return response(status.HTTP_400_BAD_REQUEST, "You can't follow yourself!")
+            return response(status_code=400, message="You can't follow yourself!")
         
         followers_list = target_user['followers']
         followings_list = current_user['followings']
 
         if any(follower.get('user_id') == current_user['id'] for follower in followers_list):
-            return response(status.HTTP_226_IM_USED, "You are already following this account")
+            return response(status_code=226, message="You are already following this account")
         
         follower =  {
             "user_id": current_user['id'],
@@ -156,9 +156,9 @@ async def follow_user(user_id: str, current_user: dict = Depends(oauth2.get_curr
             "gainer": user_serializer(updated_target_user)
         }
 
-        return response(status.HTTP_200_OK, f"{current_user['username']} followed {target_user['username']}!", res)
+        return response(status_code=200, message=f"{current_user['username']} followed {target_user['username']}!", data=res)
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
     
 
 @router.put('/unfollow')
@@ -166,18 +166,17 @@ async def unfollow_user(user_id: str, current_user: UserProfile = Depends(oauth2
     try:
         target_user = await userTable.find_one({'_id': ObjectId(user_id)})
         if not target_user:
-            return response(status.HTTP_404_NOT_FOUND, "User does not exist!")
+            return response(status_code=404, message="User does not exist!")
         
         target_user = user_serializer(target_user)
 
         if target_user['id'] == current_user['id']:
-            return response(status.HTTP_400_BAD_REQUEST, "You can't unfollow yourself!")
-        
+            return response(status_code=400, message="You can't unfollow yourself!")       
         
         target_user_followers_list = target_user['followers']
         current_user_followings_list = current_user['followings']
 
-        is_following = any(follower['user_id'] ==  target_user['id'] for follower in current_user_followings_list)
+        is_following = any(follower.get('user_id') ==  target_user['id'] for follower in current_user_followings_list)
 
         if is_following:
             target_user_followers_list = [follower for follower in target_user_followers_list if follower['user_id'] != current_user['id']]
@@ -189,19 +188,15 @@ async def unfollow_user(user_id: str, current_user: UserProfile = Depends(oauth2
             target_user_data = {key: value for key, value in target_user.items() if key != "id"}
             current_user_data = {key: value for key, value in current_user.items() if key != "id"}
 
-            print(current_user['followings'])
-            print(target_user['followers'])
-
             await asyncio.gather(
                 userTable.update_one({"_id": ObjectId(current_user['id'])}, {'$set': current_user_data}),
                 userTable.update_one({"_id": ObjectId(target_user['id'])}, {'$set': target_user_data})
             )
         
-            
             updated_current_user = await userTable.find_one({'_id': ObjectId(current_user['id'])})
             updated_target_user = await userTable.find_one({'_id': ObjectId(target_user['id'])})
         else:
-            return response(status.HTTP_404_NOT_FOUND, "You are not following this account")
+            return response(status_code=404, message="You are not following this account")
         
         
         res = {
@@ -210,9 +205,9 @@ async def unfollow_user(user_id: str, current_user: UserProfile = Depends(oauth2
         }
 
         
-        return response(status.HTTP_200_OK, f"{current_user['username']} unfollowed {target_user['username']}!", res)
+        return response(status_code=200, message=f"{current_user['username']} unfollowed {target_user['username']}!", data=res)
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
     
  
         

@@ -24,7 +24,7 @@ async def add_comment(
     try:
         post = await postTable.find_one({'_id': ObjectId(post_id)})
         if not post:
-            return response(status.HTTP_404_NOT_FOUND, "Post not found!!")
+            return response(status_code=404, message="Post not found!!")
         
         user = {
             "user_id": current_user['id'],
@@ -42,7 +42,7 @@ async def add_comment(
         comment_ref = await commentTable.insert_one(comment_instance.dict())
         comment = await commentTable.find_one({'_id': comment_ref.inserted_id})
 
-        return response(status.HTTP_201_CREATED, "Comment sent!", comment_serializer(comment))
+        return response(status_code=200, message="Comment sent!", data=comment_serializer(comment))
     except Exception as e:
         return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
@@ -52,16 +52,16 @@ async def delete_comment(comment_id: str, current_user: dict=Depends(oauth2.get_
     try:
         comment = await commentTable.find_one({'_id': ObjectId(comment_id)})
         if not comment:
-            return response(status.HTTP_404_NOT_FOUND, "Comment not found!")
+            return response(status_code=404, message="Comment not found!")
         
         if current_user["id"] != comment['user']['user_id']:
-            return response(status.HTTP_401_UNAUTHORIZED, "This comment does not belong to this user!")
+            return response(status_code=401, message="This comment does not belong to this user!")
         
         await commentTable.delete_one({'_id': ObjectId(comment_id)})
      
-        return response(status.HTTP_200_OK, "Comment deleted!", comment_serializer(comment))
+        return response(status_code=200, message="Comment deleted!", data=comment_serializer(comment))
     except Exception as e:
-        return response(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        return response(status_code=500, message=str(e))
     
 
 """@router.put('comment/{comment_id}' response_description='Edit a comment you made')
@@ -72,7 +72,7 @@ async def edit_comment(comment_id: str, current_user: dict=Depends(oauth2.get_cu
             return response(status.HTTP_404_NOT_FOUND, "Comment not found!!")
         
         if current_user["id"] != comment['user']['user_id']:
-            return response(status.HTTP_401_UNAUTHORIZED, "This comment does not belong to this user!")
+            return response(status_code=401, message="This comment does not belong to this user!")
         
         user = {
             "user_id": current_user['id'],
